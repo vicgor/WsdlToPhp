@@ -888,6 +888,7 @@ class WsdlToPhpGenerator extends SoapClient
 			array_push($comments,'@date ' . date('Y-m-d'));
 			array_push($autoloadDeclaration,array(
 												'comment'=>$comments));
+			natcasesort($_classesFiles);
 			foreach($_classesFiles as $classFile)
 			{
 				if(is_file($classFile))
