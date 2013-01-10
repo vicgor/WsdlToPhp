@@ -15,13 +15,13 @@ class WsdlToPhp extends SoapClient
 {
 	/**
 	 * Set categorization of classes based on the end of the name of the struct or the function
-	 * The catagory set the tree folders
+	 * The category set the tree folders
 	 * @var int
 	 */
 	const OPT_CAT_END_NAME = 0;
 	/**
 	 * Set categorization of classes based on the start of the name of the struct or the function
-	 * The catagory set the tree folders
+	 * The category set the tree folders
 	 * @var int
 	 */
 	const OPT_CAT_START_NAME = 1;
