@@ -586,8 +586,8 @@ class WsdlToPhp extends SoapClient
 				 */
 				$php->indentLevel++;
 				$parameters = array();
-				$parametersSring = "";
-				$usesSring = "";
+				$parametersString = "";
+				$usesString = "";
 				$isRestriction = false;
 				$parametersList = array();
 				$parametersForParent = array();
@@ -624,11 +624,11 @@ class WsdlToPhp extends SoapClient
 							/**
 							 * Is this attribute a know type ?
 							 */
-							$parametersSring .= "\r\n * @param " . (self::structIsKnown($type)?$Type:$type) . ' $_' . lcfirst($cleanName) . " $name";
+							$parametersString .= "\r\n * @param " . (self::structIsKnown($type)?$Type:$type) . ' $_' . lcfirst($cleanName) . " $name";
 							/**
 							 * Uses documentation part
 							 */
-							$usesSring .= "\r\n * @uses $className::set" . ucfirst($cleanName) . "()";
+							$usesString .= "\r\n * @uses $className::set" . ucfirst($cleanName) . "()";
 							/**
 							 * Parameters used for methods assigned to classes matching ArrayOf
 							 */
@@ -725,7 +725,7 @@ class WsdlToPhp extends SoapClient
 				/**
 				 * Constructor
 				 */
-				$php->appendCustomCode("/**\r\n * Constructor$parametersSring\r\n * @return $className\r\n */");
+				$php->appendCustomCode("/**\r\n * Constructor$parametersString\r\n * @return $className\r\n */");
 				$php->appendCustomCode("public function __construct(" . implode(',',$parametersList) . ")");
 				$php->appendCustomCode("{");
 				$php->indentLevel++;
