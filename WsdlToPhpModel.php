@@ -83,7 +83,6 @@ class WsdlToPhpModel
 				array_push($comments,'@package ' . WsdlToPhpGenerator::getPackageName()); // . (count($this->getDocSubPackages())?'\\':'') . implode('\\',$this->getDocSubPackages()));
 				if(count($this->getDocSubPackages()))
 					array_push($comments,'@subpackage ' . implode(',',$this->getDocSubPackages()));
-				array_push($comments,'@date ' . date('Y-m-d'));
 				break;
 			case 2:
 				array_push($comments,'This class stands for ' . $this->getPackagedName() . ' originally named ' . $this->getName());
@@ -93,7 +92,6 @@ class WsdlToPhpModel
 				array_push($comments,'@package ' . WsdlToPhpGenerator::getPackageName()); // . (count($this->getDocSubPackages())?'\\':'') . implode('\\',$this->getDocSubPackages()));
 				if(count($this->getDocSubPackages()))
 					array_push($comments,'@subpackage ' . implode(',',$this->getDocSubPackages()));
-				array_push($comments,'@date ' . date('Y-m-d'));
 				break;
 		}
 		return $comments;
