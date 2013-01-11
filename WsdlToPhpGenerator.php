@@ -888,14 +888,16 @@ class WsdlToPhpGenerator extends SoapClient
 			array_push($comments,'@date ' . date('Y-m-d'));
 			array_push($autoloadDeclaration,array(
 												'comment'=>$comments));
-			natcasesort($_classesFiles);
+            $_classFilePath = array();
 			foreach($_classesFiles as $classFile)
 			{
 				if(is_file($classFile))
-					array_push($autoloadDeclaration,'require_once ' . str_replace($_rootDirectory,'dirname(__FILE__) . \'/',$classFile) . '\';');
+					array_push($_classFilePath, 'require_once ' . str_replace($_rootDirectory,'dirname(__FILE__) . \'/',$classFile) . '\';');
 			}
+            natcasesort($_classFilePath);
+            $autoloadDeclaration = array_merge($autoloadDeclaration,$_classFilePath);
 			self::populateFile($_rootDirectory . '/' . self::getPackageName() . 'Autoload.php',$autoloadDeclaration);
-			unset($autoloadDeclaration,$comments);
+			unset($autoloadDeclaration,$comments,$_classFilePath);
 		}
 	}
 	/**
