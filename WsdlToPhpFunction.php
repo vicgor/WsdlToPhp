@@ -26,16 +26,19 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 	 * @see WsdlToPhpModel::__construct()
 	 * @uses WsdlToPhpFunction::setParameterType()
 	 * @uses WsdlToPhpFunction::setReturnType()
+	 * @uses WsdlToPhpModel::setOwner()
 	 * @param string $_name the function name
 	 * @param string $_parameterType the type/name of the parameter
 	 * @param string $_returnType the type/name of the return value
+	 * @param WsdlToPhpService $_wsdlToPhpService defines the struct which owns this value
 	 * @return WsdlToPhpFunction
 	 */
-	public function __construct($_name,$_parameterType,$_returnType)
+	public function __construct($_name,$_parameterType,$_returnType,WsdlToPhpService $_wsdlToPhpService)
 	{
 		parent::__construct($_name);
 		$this->setParameterType($_parameterType);
 		$this->setReturnType($_returnType);
+		$this->setOwner($_wsdlToPhpService);
 	}
 	/**
 	 * Returns the commment lines for this function
@@ -58,7 +61,7 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 	public function getComment($_part = '')
 	{
 		$comments = array();
-		array_push($comments,'Method to call the operation named ' . $this->getName());
+		array_push($comments,'Method to call the operation originally named ' . $this->getName());
 		if($this->getDocumentation() != '')
 			array_push($comments,'Documentation : ' . $this->getDocumentation());
 		$this->addMetaComment($comments,false,true);
@@ -117,6 +120,8 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 	 * @uses WsdlToPhpModel::getCleanName()
 	 * @uses WsdlToPhpModel::nameIsClean()
 	 * @uses WsdlToPhpModel::cleanString()
+	 * @uses WsdlToPhpModel::uniqueName()
+	 * @uses WsdlToPhpModel::getOwner()
 	 * @uses WsdlToPhpModel::replaceReservedPhpKeyword()
 	 * @uses WsdlToPhpFunction::getParameterType()
 	 * @uses WsdlToPhpStruct::getAttributes()
@@ -163,7 +168,7 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 		}
 		else
 			$parameterName = $parameter = '';
-		array_push($_body,'public function ' . self::replaceReservedPhpKeyword($this->getCleanName(),$this->getName()) . '(' . $parameter . ')');
+		array_push($_body,'public function ' . self::uniqueName(self::replaceReservedPhpKeyword($this->getCleanName(),$this->getName()),$this->getOwner()->getName()) . '(' . $parameter . ')');
 		array_push($_body,'{');
 		array_push($_body,'try');
 		array_push($_body,'{');
@@ -172,11 +177,6 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 		 */
 		$responseAsObjStart = ((WsdlToPhpGenerator::getOptionResponseAsWsdlObject() && $returnModel)?'new ' . $returnModel->getPackagedName() . '(':'');
 		$responseAsObjEnd = ((WsdlToPhpGenerator::getOptionResponseAsWsdlObject() && $returnModel)?')':'');
-		/**
-		 * Soap call
-		 */
-		$soapCallStart = 'self::getSoapClient()->' . ($this->nameIsClean()?$this->getName() . '(':'__soapCall(' . $this->getName() . ',');
-		$soapCallEnd = ')' . (WsdlToPhpGenerator::getOptionSendParametersAsArray()?'->parameters':'');
 		/**
 		 * Soap parameters
 		 */
@@ -218,9 +218,14 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 		else
 			$soapParametersStart = $soapParametersEnd = '';
 		/**
+		 * Soap call
+		 */
+		$soapCallStart = 'self::getSoapClient()->' . ($this->nameIsClean()?$this->getName() . '(':'__soapCall(\'' . $this->getName() . '\'' . ((!empty($soapParametersStart) || !empty($soapParametersEnd))?',array(':''));
+		$soapCallEnd = ((!$this->nameIsClean() && (!empty($soapParametersStart) || !empty($soapParametersEnd)))?')':'') . ')' . (WsdlToPhpGenerator::getOptionSendParametersAsArray()?'->parameters':'');
+		/**
 		 * Send parameters in parameters array
 		 */
-		if(!empty($soapParametersStart))
+		if(!empty($soapParametersStart) && $this->nameIsClean())
 		{
 			$sendParametersAsArrayStart = (WsdlToPhpGenerator::getOptionSendParametersAsArray()?'array(\'parameters\'=>':'');
 			$sendParametersAsArrayEnd = (WsdlToPhpGenerator::getOptionSendParametersAsArray()?')':'');
@@ -230,7 +235,7 @@ class WsdlToPhpFunction extends WsdlToPhpModel
 		/**
 		 * Send an array
 		 */
-		if(!empty($soapParametersStart))
+		if(!empty($soapParametersStart) && $this->nameIsClean())
 		{
 			$sendArrayAsParameterStart = (WsdlToPhpGenerator::getOptionSendArrayAsParameter()?'array(':'');
 			$sendArrayAsParameterEnd = (WsdlToPhpGenerator::getOptionSendArrayAsParameter()?')':'');

@@ -32,6 +32,11 @@ class WsdlToPhpModel
 	 */
 	private $inheritance;
 	/**
+	 * Store the object which owns the current model
+	 * @var WsdlToPhpModel
+	 */
+	private $owner;
+	/**
 	 * Store all the models generated
 	 * @var array
 	 */
@@ -47,6 +52,11 @@ class WsdlToPhpModel
 	 * @var array
 	 */
 	private static $replacedReservedPhpKeywords = array();
+	/**
+	 * Unique name generated in order to ensure unique naming (for struct constructor and setters/getters even for different case attribute name whith same value)
+	 * @var array
+	 */
+	private static $uniqueNames = array();
 	/**
 	 * Main constructor
 	 * @uses WsdlToPhpModel::setInheritance()
@@ -137,7 +147,7 @@ class WsdlToPhpModel
 		}
 		elseif(class_exists($this->getInheritance()))
 			$extends = $this->getInheritance();
-		elseif(WsdlToPhpGenerator::getOptionGenerateWsdlClassFile())
+		if(empty($extends) && WsdlToPhpGenerator::getOptionGenerateWsdlClassFile())
 			$extends = self::getGenericWsdlClassName();
 		array_push($class,'class ' . $this->getPackagedName() . (!empty($extends)?' extends ' . $extends:''));
 		/**
@@ -208,9 +218,10 @@ class WsdlToPhpModel
 		{
 			foreach($this->getMeta() as $metaName=>$metaValue)
 			{
-				if($_ignoreDocumentation && $metaName == self::META_DOCUMENTATION)
+				$cleanedMetaValue = self::cleanComment($metaValue);
+				if(($_ignoreDocumentation && $metaName == self::META_DOCUMENTATION) || $cleanedMetaValue === '')
 					continue;
-				array_push($metaComments,($_addStars?' * ':'') . "\t- $metaName : " . self::cleanComment($metaValue));
+				array_push($metaComments,($_addStars?' * ':'') . "\t- $metaName : $cleanedMetaValue");
 			}
 		}
 		if(count($metaComments))
@@ -233,7 +244,7 @@ class WsdlToPhpModel
 	/**
 	 * Set the meta
 	 * @param array $_meta
-     * @return array
+	 * @return array
 	 */
 	public function setMeta(array $_meta = array())
 	{
@@ -249,7 +260,9 @@ class WsdlToPhpModel
 	 */
 	public function addMeta($_metaName,$_metaValue)
 	{
-		$metaValue = trim($_metaValue);
+		if(!is_scalar($_metaName) || (!is_scalar($_metaValue) && !is_array($_metaValue)))
+			return '';
+		$metaValue = is_scalar($_metaValue)?trim($_metaValue):$_metaValue;
 		if(is_scalar($metaValue) && $metaValue === '')
 			return false;
 		if(!array_key_exists($_metaName,$this->getMeta()))
@@ -322,7 +335,8 @@ class WsdlToPhpModel
 	}
 	/**
 	 * Set the original name extracted from the WSDL
-	 * @param string
+	 * @param string $_name
+	 * @return string
 	 */
 	public function setName($_name)
 	{
@@ -337,6 +351,21 @@ class WsdlToPhpModel
 	public function getCleanName()
 	{
 		return self::cleanString($this->getName());
+	}
+	/**
+	 * @return WsdlToPhpModel
+	 */
+	public function getOwner()
+	{
+		return $this->owner;
+	}
+	/**
+	 * @param WsdlToPhpModel $_owner object the owner of the current model
+	 * @return WsdlToPhpModel
+	 */
+	public function setOwner(WsdlToPhpModel $_owner)
+	{
+		return ($this->owner = $_owner);
 	}
 	/**
 	 * Returns true if the original name is safe to use as a PHP property, variable name or class name
@@ -458,8 +487,29 @@ class WsdlToPhpModel
 			return $_keyword;
 	}
 	/**
+	 * Static method wich returns a unique name case sensitively
+	 * Useful to name methods case sensitively distinct, see http://the-echoplex.net/log/php-case-sensitivity
+	 * @param string $_name the original name
+	 * @param string $_ownerName the name of owner
+	 * @return string
+	 */
+	protected static function uniqueName($_name,$_ownerName)
+	{
+		$insensitiveKey = strtolower($_name . '_' . $_ownerName);
+		$sensitiveKey = $_name . '_' . $_ownerName;
+		if(array_key_exists($sensitiveKey,self::$uniqueNames))
+			return self::$uniqueNames[$sensitiveKey];
+		elseif(!array_key_exists($insensitiveKey,self::$uniqueNames))
+			self::$uniqueNames[$insensitiveKey] = 0;
+		else
+			self::$uniqueNames[$insensitiveKey]++;
+		$uniqueName = $_name . (self::$uniqueNames[$insensitiveKey]?'_' . self::$uniqueNames[$insensitiveKey]:'');
+		self::$uniqueNames[$sensitiveKey] = $uniqueName;
+		return $uniqueName;
+	}
+	/**
 	 * Return the value with good type
-	 * @param mixed
+	 * @param mixed $_value the value
 	 * @return mixed
 	 */
 	public static function getValueWithinItsType($_value)
@@ -469,7 +519,7 @@ class WsdlToPhpModel
 		elseif(is_float($_value))
 			return floatval($_value);
 		elseif(is_numeric($_value))
-			return intval($_value) === $_value?intval($_value):floatval($_value);
+			return intval($_value) == $_value?intval($_value):floatval($_value);
 		elseif(is_bool($_value))
 			return $_value?true:false;
 		else
@@ -482,7 +532,9 @@ class WsdlToPhpModel
 	 */
 	public static function cleanComment($_comment)
 	{
-		return str_replace('*/','*[:slash:]',$_comment);
+		if(!is_scalar($_comment) && !is_array($_comment))
+			return '';
+		return trim(str_replace('*/','*[:slash:]',is_scalar($_comment)?$_comment:implode(', ',array_unique($_comment))));
 	}
 	/**
 	 * Returns the generic name of the WsdlClass
